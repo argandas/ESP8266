@@ -53,6 +53,8 @@
 #define ESP8266_DBG(data)\
     Serial.print(F("[ESP8266] "));\
     Serial.println(data);
+#else
+#define ESP8266_DBG(data)
 #endif
 
 /* Macro for debug ESP8266 Responses */

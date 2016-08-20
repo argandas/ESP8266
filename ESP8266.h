@@ -2,8 +2,8 @@
 #define ESP8266_H
 
 #define ESP8266_USE_SOFT_SERIAL       (0)     /* Set this value to 1 to enable SoftwareSerial usage */
-#define ESP8266_DBG_EN                (1)     /* Enable/Disable ESP8266 Debug  */
-#define ESP8266_DBG_PARSE_EN          (1)     /* Enable/Disable ESP8266 Debug  */
+#define ESP8266_DBG_EN                (0)     /* Enable/Disable ESP8266 Debug  */
+#define ESP8266_DBG_PARSE_EN          (0)     /* Enable/Disable ESP8266 Debug  */
 
 #include "Arduino.h"
 #if (ESP8266_USE_SOFT_SERIAL == 1)
