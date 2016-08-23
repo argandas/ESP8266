@@ -20,13 +20,6 @@ void setupESP8266(HardwareSerial &serialPort, uint32_t baud, int rst, int en);
 #endif
 
 /**
- * Send command to ESP8266.
- *
- * @param cmd - Command to send
- */
-void sendCommand(char *cmd);
-
-/**
  * Ping (test) connection to ESP8266.
  *
  * @retval true - success.
