@@ -8,24 +8,14 @@
 #include "ESP8266.h"
 #include "ESP8266_AT_CMD.h"
 
-#define WIFI_MODE_STATION 		1  // Station mode
-#define WIFI_MODE_AP 			2  // AP mode
-#define WIFI_MODE_AP_STATION 	3  // AP + Station mode
-#define CONN_MODE_SINGLE  		0  // Single connection mode
-#define CONN_MODE_MULTIPLE  	1  // Multi-Channel connection mode
-#if (ESP8266_DBG_EN == 1)
-#define ESP8266_DBG(data)\
-    Serial.print(F("[ESP8266] "));\
-    Serial.println(data);
-#else
-#define ESP8266_DBG(data)
-#endif
-
 /* Macro for debug ESP8266 Responses */
 #if (ESP8266_DBG_PARSE_EN == 1)
-#define ESP8266_DBG_PARSE(data)    ESP8266_DBG(data)
+#define ESP8266_DBG_PARSE(label, data)\
+    Serial.print(F("[ESP8266] "));\
+    Serial.print(label);\
+    Serial.println(data);
 #else
-#define ESP8266_DBG_PARSE(data)
+#define ESP8266_DBG_PARSE(label, data)
 #endif
 
 /* Physical interface */
@@ -37,6 +27,8 @@ static HardwareSerial *_serialPort = NULL;
 
 static int esp8266_EnablePin = -1;
 static int esp8266_ResetPin = -1;
+
+static char _ssidBuffer[ESP8266_MAX_SSID_LEN];
 
 /* Command type, used by sendCommand function */
 typedef enum at_cmd_type
@@ -67,8 +59,6 @@ static uint8_t getResponseTimeout(char* dest, const char* expected, char delimA,
  */
 static void sendCommand(const char *cmd, at_cmd_type type, char *params);
 
-// uint16_t requestStatus(void);
-
 #if (ESP8266_USE_SOFT_SERIAL == 1)
 void setupESP8266(SoftwareSerial &serialPort, uint32_t baud, int rst, int en)
 #else
@@ -91,7 +81,6 @@ void setupESP8266(HardwareSerial &serialPort, uint32_t baud, int rst, int en)
 
 void hardReset()
 {
-    ESP8266_DBG(F("HARD reset"));
     digitalWrite(esp8266_ResetPin, LOW);
     delay(1000);
     digitalWrite(esp8266_ResetPin, HIGH);
@@ -107,7 +96,6 @@ bool ping()
 bool reset()
 {
     flush();
-    ESP8266_DBG(F("SOFT reset"));
     sendCommand(AT_RESET, ESP8266_CMD_EXECUTE, NULL);
     return getResponseTimeout(NULL, AT_RESPONSE_RST, NULL, NULL, 3000);
 }
@@ -150,18 +138,12 @@ bool joinAP(char *ssid, char *ssid_pass)
     uint8_t ucValidIP = false;
     uint32_t ulStartTime = 0;
 
-    if (NULL == ssid)
-    {
-        ESP8266_DBG(F("ERR: Passed null pointer"));
-    }
-    else
+    if (NULL != ssid)
     {
         conn = quitAP();
 
         if (conn) /* Join AP */
         {
-            ESP8266_DBG("Join AP \"" + String(ssid) + "\"");
-
             _serialPort->print(AT_CMD);
             _serialPort->print(AT_CWJAP);
             _serialPort->print("=\"");
@@ -194,7 +176,6 @@ bool joinAP(char *ssid, char *ssid_pass)
 bool quitAP(void)
 {
     bool ret = false;
-    ESP8266_DBG(F("Disconnect from AP"));
     sendCommand(AT_CWQAP, ESP8266_CMD_EXECUTE, NULL);
     ret = getResponseTimeout(NULL, AT_RESPONSE_OK, NULL, NULL, 3000);
     if (ret)
@@ -207,7 +188,6 @@ bool quitAP(void)
 bool getVersion(char *dest)
 {
     bool ret = false;
-
     if (NULL != dest)
     {
         sendCommand(AT_GMR, ESP8266_CMD_EXECUTE, NULL);
@@ -216,65 +196,32 @@ bool getVersion(char *dest)
     return ret;
 }
 
-bool getAPList(char matrix[][ESP8266_MAX_SSID_LEN], uint8_t* num)
+char* requestAPList(void)
 {
-    uint8_t ret = true;
-    uint8_t ucParseOK = true;
-    uint8_t qty = 0; /* Number of APs found */
-
-    ESP8266_DBG(F("List Access Points..."));
-
-    /* Validate arguments */
-    if ((NULL == matrix) || (NULL == num))
+    char* ssidName = NULL;
+    sendCommand(AT_CWLAP, ESP8266_CMD_EXECUTE, NULL);
+    if(getResponseTimeout(_ssidBuffer, AT_CWLAP_RX, '"', '"', 5000))
     {
-        ESP8266_DBG(F("ERR: NULL pointer"));
-        ret = false;
+        ssidName = (char*)&_ssidBuffer;
     }
-    else
+    return ssidName;
+}
+
+char* getNextAP(void)
+{
+    char* ssidNext = NULL;
+    if(getResponseTimeout(_ssidBuffer, AT_CWLAP_RX, '"', '"', 1000))
     {
-        /* Save first AP Name */
-        sendCommand(AT_CWLAP, ESP8266_CMD_EXECUTE, NULL);
-        ucParseOK = getResponseTimeout(&(matrix[qty][0]), AT_CWLAP_RX, '"', '"', 5000);
-        if (ucParseOK)
-        {
-            qty++;
-            for (; (ucParseOK) && (ESP8266_MAX_SSID > qty);)
-            {
-                /* Save AP Names */
-                ucParseOK = getResponseTimeout(&(matrix[qty][0]), AT_CWLAP_RX, '"', '"', 500);
-                if (ucParseOK)
-                {
-                    qty++;
-                }
-            }
-        }
-
-        /* Save AP Number */
-        *num = qty;
-        ESP8266_DBG("APs found: " + String(qty));
-
-        if (0 >= qty)
-        {
-            /* Clean full array to avoid previous data stored */
-            for (qty = 0; ESP8266_MAX_SSID > qty; qty++)
-            {
-                matrix[qty][0] = '\0'; /* Add NULL terminator for empty string */
-            }
-        }
+        ssidNext = (char*)&_ssidBuffer;
     }
-
-    return ret;
+    return ssidNext;
 }
 
 bool startTCP(char *server, char *port)
 {
     uint8_t ret = false;
 
-    if ((NULL == server) || (NULL == port))
-    {
-        ESP8266_DBG(F("ERR: NULL pointer"));
-    }
-    else
+    if ((NULL != server) && (NULL != port))
     {
         flush();
 
@@ -303,7 +250,7 @@ bool stopTCP(void)
 {
     uint8_t ret = false;
     sendCommand(AT_CIPCLOSE, ESP8266_CMD_EXECUTE, NULL);
-    ret = getResponseTimeout(NULL, AT_CIPCLOSE_RX, NULL, NULL, 1000);
+    ret = getResponseTimeout(NULL, AT_CIPCLOSE_OK, NULL, NULL, 1000);
     if (ret)
     {
         ret = getResponseTimeout(NULL, AT_RESPONSE_OK, NULL, NULL, 1000);
@@ -323,11 +270,7 @@ bool localIP(char *dest)
 {
     uint8_t ret = false;
     /* Validate arguments */
-    if (NULL == dest)
-    {
-        ESP8266_DBG(F("ERR: NULL pointer"));
-    }
-    else
+    if (NULL != dest)
     {
         sendCommand(AT_CIFSR, ESP8266_CMD_EXECUTE, NULL);
         ret = getResponseTimeout(dest, AT_CIFSR_STATIP, '"', '"', 1000);
@@ -353,19 +296,14 @@ bool send(String data)
     if (ret)
     {
         /* Send data */
-        ESP8266_DBG(F("Sending data"));
         _serialPort->print(data);
-        ret = getResponseTimeout(NULL, AT_CIPSEND_RX, NULL, NULL, 5000);
+        ret = getResponseTimeout(NULL, AT_CIPSEND_OK, NULL, NULL, 5000);
         /* TODO: return status */
         (void) getResponseTimeout(NULL, AT_IPD, ' ', ' ', 1000);
     }
     else
     {
-        ESP8266_DBG(F("Unable to find wrap return \">\""));
-    }
-
-    if (!ret) /* End connection if request failed */
-    {
+        /* End connection if request failed */
         stopTCP();
     }
 
@@ -392,23 +330,19 @@ static void sendCommand(const char *cmd, at_cmd_type type, char *params)
 
 static uint8_t getResponseTimeout(char* dest, const char* expected, char delimA, char delimB, uint32_t timeout)
 {
+    static char data[64]; /* Temp Memory */
+    
     uint8_t ret = false;
     uint8_t idx = 0;
     uint32_t ulStartTime = 0;
-
-    char data[64]; /* Temp Memory */
 
     char *ucpStart = NULL;
     char *ucpEnd = NULL;
 
     /* Validate arguments */
-    if (NULL == expected)
+    if (NULL != expected)
     {
-        ESP8266_DBG(F("ERR: Passed null pointer"));
-    }
-    else
-    {
-        ESP8266_DBG_PARSE("EXP: \"" + String(expected) + "\"");
+        ESP8266_DBG_PARSE(F("EXP: "), expected);
 
         for (ulStartTime = millis(); (timeout >= (millis() - ulStartTime)) && (ret != true);)
         {
@@ -417,9 +351,11 @@ static uint8_t getResponseTimeout(char* dest, const char* expected, char delimA,
             {
                 data[idx] = '\0'; /* Always add NULL terminator */
 
+                ESP8266_DBG_PARSE(F("ACT: "), data);
+
                 if (0 == strncmp(expected, data, strlen(expected)))
                 {
-                    ESP8266_DBG_PARSE("FND: \"" + String(data) + "\"");
+                    ESP8266_DBG_PARSE(F("FND: "), data);
                     if ((delimA != NULL) && (delimB != NULL))
                     {
                         ucpStart = (char *) memchr(data, delimA, idx);
@@ -432,7 +368,7 @@ static uint8_t getResponseTimeout(char* dest, const char* expected, char delimA,
                                 if ((ucpEnd - ucpStart) > 1)
                                 {
                                     *ucpEnd = '\0';
-                                    ESP8266_DBG_PARSE("INS: \"" + String(ucpStart) + "\"");
+                                    ESP8266_DBG_PARSE("INS: ", ucpStart);
                                     if (NULL != dest)
                                     {
                                         strcpy(dest, ucpStart);
@@ -446,18 +382,6 @@ static uint8_t getResponseTimeout(char* dest, const char* expected, char delimA,
                     {
                         ret = true;
                     }
-                }
-                else if (0 == strncmp(AT_RESPONSE_ERROR, data, strlen(AT_RESPONSE_ERROR)))
-                {
-                    ESP8266_DBG(F("DEVICE ERROR"));
-                }
-                else if (0 == strncmp(AT_RESPONSE_BUSY, data, strlen(AT_RESPONSE_BUSY)))
-                {
-                    ESP8266_DBG(F("DEVICE BUSY"));
-                }
-                else
-                {
-                    ESP8266_DBG_PARSE("<< : \"" + String(data) + "\"");
                 }
             }
         }

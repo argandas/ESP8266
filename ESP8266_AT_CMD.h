@@ -46,7 +46,7 @@ const char AT_CIPSEND[] = "+CIPSEND";
 const char AT_CIPCLOSE[] = "+CIPCLOSE";
 
 /* TCP Responses */
-const char AT_CIPSEND_RX[] = "SEND OK";
-const char AT_CIPCLOSE_RX[] = "CLOSED";
+const char AT_CIPSEND_OK[] = "SEND OK";
+const char AT_CIPCLOSE_OK[] = "CLOSED";
 
 #endif /* ESP8266_AT_CMD_H_ */

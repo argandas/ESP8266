@@ -1,18 +1,32 @@
 #ifndef ESP8266_H
 #define ESP8266_H
 
-#define ESP8266_USE_SOFT_SERIAL       (0)     /* Set this value to 1 to enable SoftwareSerial usage */
-#define ESP8266_DBG_EN                (0)     /* Enable/Disable ESP8266 Debug  */
-#define ESP8266_DBG_PARSE_EN          (0)     /* Enable/Disable ESP8266 Debug  */
+#define ESP8266_USE_SOFT_SERIAL     (0)  /* Set this value to 1 to enable SoftwareSerial usage */
 
 #include "Arduino.h"
 #if (ESP8266_USE_SOFT_SERIAL == 1)
 #include <SoftwareSerial.h>
 #endif
 
-#define ESP8266_MAX_SSID_LEN         32     /* Maximum SSID data length */
-#define ESP8266_MAX_SSID              8     // Maximum SSID to be saved in List Access Points function
+#define ESP8266_DBG_PARSE_EN        (0)  /* Enable/Disable ESP8266 Debug  */
 
+#define ESP8266_MODE_STATION 		(1)  /* Station mode */
+#define ESP8266_MODE_AP 			(2)  /* AP mode */
+#define ESP8266_MODE_AP_STATION 	(3)  /* AP + Station mode */
+
+#define ESP8266_CONN_SINGLE  		(0)  /* Single connection mode */
+#define ESP8266_CONN_MULTIPLE  	    (1)  /* Multi-Channel connection mode */
+
+#define ESP8266_MAX_SSID_LEN       (32)  /* Maximum SSID data length */
+
+/**
+ * Setup ESP8266 connection.
+ *
+ * @param serialPort - Serial port where ESP8266 Tx/Rx are connectected
+ * @param baud - ESP8266 current baud rate
+ * @param rst - ESP8266 Reset Pin
+ * @param en - ESP8266 Enable Pin
+ */
 #if (ESP8266_USE_SOFT_SERIAL == 1)
 void setupESP8266(SoftwareSerial &serialPort, uint32_t baud, int rst, int en);
 #else
@@ -68,10 +82,12 @@ bool setWifiMode(int mode);
 /**
  * Enable/Disable multiple connections
  *
- * @param mode - Connection mode (1 - Single, 2 - Multi-Channel)
+ * @param mode - Connection mode (0 - Single Connection, 1 - Multiple connection)
  *
  * @retval true - success.
  * @retval false - failure.
+ * 
+ * @note You should use CONN_MODE_SINGLE & CONN_MODE_MULTIPLE values
  */
 bool setConnMode(int mode);
 
@@ -105,15 +121,26 @@ bool joinAP(char *ssid, char *ssid_pass);
 bool quitAP(void);
 
 /**
- * Get list of available Access Points.
+ * Get available Access Points. 
  *
- * @param matrix - Array to store the AP list.
- * @param num - Number of available APs.
+ * @retval - Pointer to first available SSID name, returns NULL if no APs found.
+ *
+ * @note This function will return the first available SSID, 
+ * for later AP names you should use the getNextAP() function.
+ */
+char* requestAPList(void);
+
+/**
+ * Get next available SSID name. 
+ *
+ * @param ssid - Pointer to store first available SSID name.
+ *
  * @retval true - success.
  * @retval false - failure.
- * @note This method will take a couple of seconds.
+ *
+ * @note Before using this function call requestAPList() fucntion.
  */
-bool getAPList(char matrix[][ESP8266_MAX_SSID_LEN], uint8_t* num);
+char* getNextAP(void);
 
 /**
  * Get ESP8266 IP Address.
