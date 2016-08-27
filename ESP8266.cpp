@@ -45,7 +45,6 @@ static HardwareSerial* _serialPort = NULL;
 #endif
 static int _enablePin = -1;
 static int _resetPin = -1;
-static char _rxBuffer[ESP8266_RX_BUFF_LEN];
 static char _ssidBuffer[ESP8266_MAX_SSID_LEN];
 
 /**
@@ -320,6 +319,7 @@ bool send(String data)
 
 static void sendCommand(const char *cmd, at_cmd_type type, char *params)
 {
+    ESP8266_DBG_PARSE(F("CMD: "), cmd);
     _serialPort->print("AT");
     _serialPort->print(cmd);
     if (ESP8266_CMD_QUERY == type)
@@ -328,6 +328,7 @@ static void sendCommand(const char *cmd, at_cmd_type type, char *params)
     }
     else if ((ESP8266_CMD_SETUP == type) && (NULL != params))
     {
+        ESP8266_DBG_PARSE(F("PRM: "), params);
         _serialPort->print('=');
         _serialPort->print(params);
     }
@@ -338,6 +339,7 @@ static void sendCommand(const char *cmd, at_cmd_type type, char *params)
 
 static int8_t getResponse(char* dest, const char* pass, const char* fail, char delimA, char delimB, uint32_t timeout)
 {
+    static char _rxBuffer[ESP8266_RX_BUFF_LEN];
     int8_t ret = ESP8266_CMD_RSP_WAIT;
     uint8_t idx = 0;
     uint32_t ulStartTime = 0;
