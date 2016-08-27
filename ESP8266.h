@@ -9,6 +9,7 @@
 #endif
 
 #define ESP8266_DBG_PARSE_EN        (0)  /* Enable/Disable ESP8266 Debug  */
+#define ESP8266_DBG_HTTP_RES        (0)  /* Enable/Disable ESP8266 Debug for HTTP responses */
 
 #define ESP8266_MODE_STATION 		(1)  /* Station mode */
 #define ESP8266_MODE_AP 			(2)  /* AP mode */
@@ -19,6 +20,13 @@
 
 #define ESP8266_RX_BUFF_LEN        (64)  /* ESP8266 Rx Buffer length */
 #define ESP8266_MAX_SSID_LEN       (32)  /* Maximum SSID data length */
+
+typedef struct
+{
+        uint16_t status;
+        uint16_t len;
+        char content[ESP8266_RX_BUFF_LEN];
+} httpResponse;
 
 /**
  * Setup ESP8266 connection.
@@ -68,7 +76,7 @@ bool reset(void);
  * @retval true - success.
  * @retval false - failure.
  */
-void hardReset(void);
+bool hardReset(void);
 
 /**
  * Set SoftAP parameters.
@@ -202,5 +210,13 @@ bool stopTCP(void);
  * @retval false - failure.
  */
 bool send(String data);
+
+/**
+ * Get response for the last TCP connection.
+ *
+ * @param response - struct to store response.
+ * @retval - Number of received bytes.
+ */
+uint16_t httpReceive(httpResponse* response);
 
 #endif /* ESP8266_H */
