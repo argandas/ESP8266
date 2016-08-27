@@ -18,35 +18,36 @@ const char AT_RESPONSE_RST[] = "ready";
 
 /* Basic AT Commands */
 const char AT_CMD[] = "AT";
-const char AT_TEST[] = "";
-const char AT_RESET[] = "+RST";
-const char AT_GMR[] = "+GMR";
-const char AT_ECHO_ENABLE[] = "E1";
-const char AT_ECHO_DISABLE[] = "E0";
+const char AT_TEST[] = ""; /* Test AT startup */
+const char AT_RESET[] = "+RST"; /* Restart module */
+const char AT_GMR[] = "+GMR"; /* View version info */
+const char AT_ECHO_ENABLE[] = "E1"; /* AT commands echo Enable */
+const char AT_ECHO_DISABLE[] = "E0"; /* AT commands echo Disable */
 
-/* WiFi AT Commands */
-const char AT_SET_WIFI_MODE[] = "+CWMODE_CUR";
-const char AT_CWJAP[] = "+CWJAP_CUR";
-const char AT_CWLAP[] = "+CWLAP";
-const char AT_CWQAP[] = "+CWQAP";
-const char AT_CIFSR[] = "+CIFSR";
-const char AT_CIPMUX[] = "+CIPMUX";
-const char AT_PING[] = "+PING";
+/* Wi-Fi AT Commands */
+const char AT_SET_WIFI_MODE[] = "+CWMODE_CUR"; /* Current WiFi mode */
+const char AT_CWJAP[] = "+CWJAP_CUR"; /* Connect to AP, for current */
+const char AT_CWLAP[] = "+CWLAP"; /* List available APs */
+const char AT_CWQAP[] = "+CWQAP"; /* Disconnect from AP */
 
 /* WiFi responses*/
-const char AT_CIFSR_STATIP[] = "+CIFSR:STAIP,";
-const char AT_CIFSR_STAMAC[] = "+CIFSR:STAMAC,";
-const char AT_CIPSTART_RX[] = "CONNECT";
-const char AT_IPD[] = "+IPD,";
 const char AT_CWLAP_RX[] = "+CWLAP:";
 
-/* TCP AT Commands */
-const char AT_CIPSTART[] = "+CIPSTART";
-const char AT_CIPSEND[] = "+CIPSEND";
-const char AT_CIPCLOSE[] = "+CIPCLOSE";
+/* TCP/IP Related AT Commands */
+const char AT_CIPSTART[] = "+CIPSTART"; /* Establish TCP, UDP or SSL connection */
+const char AT_CIPSEND[] = "+CIPSEND"; /* Send data */
+const char AT_CIPCLOSE[] = "+CIPCLOSE"; /* Close TCP, UDP or SSL connection */
+const char AT_CIPMUX[] = "+CIPMUX"; /* Enable multiple connections */
+const char AT_CIFSR[] = "+CIFSR"; /* Get local IP address */
+const char AT_PING[] = "+PING"; /* DESC */
+const char AT_IPD[] = "+IPD";
 
 /* TCP Responses */
+const char AT_CIPSTART_ALRDY[] = "ALREADY CONNECT";
+const char AT_CIPSTART_RX[] = "CONNECT";
 const char AT_CIPSEND_OK[] = "SEND OK";
 const char AT_CIPCLOSE_OK[] = "CLOSED";
+const char AT_CIFSR_STATIP[] = "+CIFSR:STAIP,";
+const char AT_CIFSR_STAMAC[] = "+CIFSR:STAMAC,";
 
 #endif /* ESP8266_AT_CMD_H_ */

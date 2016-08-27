@@ -28,9 +28,9 @@ void setup()
   delay(1000);
   flush();
 
-  if (!ping())
+  if (!test())
   {
-    Serial.println("Ping failed");
+    Serial.println("Test failed");
     flush();
   }
 

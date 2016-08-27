@@ -18,37 +18,49 @@
 #define ESP8266_DBG_PARSE(label, data)
 #endif
 
-/* Physical interface */
-#if (ESP8266_USE_SOFT_SERIAL == 1)
-static SoftwareSerial *_serialPort = NULL;
-#else
-static HardwareSerial *_serialPort = NULL;
-#endif
-
-static int esp8266_EnablePin = -1;
-static int esp8266_ResetPin = -1;
-
-static char _ssidBuffer[ESP8266_MAX_SSID_LEN];
-
 /* Command type, used by sendCommand function */
 typedef enum at_cmd_type
 {
-    ESP8266_CMD_QUERY, ESP8266_CMD_SETUP, ESP8266_CMD_EXECUTE,
+    ESP8266_CMD_QUERY, 
+    ESP8266_CMD_SETUP, 
+    ESP8266_CMD_EXECUTE,
 };
+
+/* Response codes for getResponse */
+typedef enum cmd_rsp_code
+{
+    ESP8266_CMD_RSP_FAILED = -4,
+    ESP8266_CMD_RSP_TIMEOUT = -3,
+    ESP8266_CMD_RSP_BUSY = -2,
+    ESP8266_CMD_RSP_ERROR = -1,
+    ESP8266_CMD_RSP_WAIT = 0,
+    ESP8266_CMD_RSP_SUCCESS = 1,
+};
+
+/* Private data */
+#if (ESP8266_USE_SOFT_SERIAL == 1)
+static SoftwareSerial* _serialPort = NULL;
+#else
+static HardwareSerial* _serialPort = NULL;
+#endif
+static int _enablePin = -1;
+static int _resetPin = -1;
+static char _rxBuffer[ESP8266_RX_BUFF_LEN];
+static char _ssidBuffer[ESP8266_MAX_SSID_LEN];
 
 /**
  * Look for a response from the ESP8266, if found this function can return the instance that matches
  *
  * @param dest - Pointer to save instance if found
- * @param expected - Expected string to match
+ * @param pass - Expected response if succeed
+ * @param fail - Expected response if fails
  * @param delimA - Delimiter character
  * @param delimB - Delimiter character
- * @param timeout - Timeout to match expected string
+ * @param timeout - Timeout to match expected responses
  *
- * @retval true - success.
- * @retval false - failure.
+ * @retval cmd_rsp_code (1 =  success).
  */
-static uint8_t getResponseTimeout(char* dest, const char* expected, char delimA, char delimB, uint32_t timeout);
+static int8_t getResponse(char* dest, const char* pass, const char* fail, char delimA, char delimB, uint32_t timeout);
 
 /**
  * Send command to ESP8266.
@@ -66,38 +78,38 @@ void setupESP8266(HardwareSerial &serialPort, uint32_t baud, int rst, int en)
 #endif
 {
     /* Save hardware configurations */
-    esp8266_ResetPin = rst;
-    esp8266_EnablePin = en;
+    _resetPin = rst;
+    _enablePin = en;
     _serialPort = &serialPort;
     _serialPort->begin(baud);
 
     /* Setup pins */
-    pinMode(esp8266_ResetPin, OUTPUT);
-    pinMode(esp8266_EnablePin, OUTPUT);
-    digitalWrite(esp8266_ResetPin, HIGH);
-    digitalWrite(esp8266_EnablePin, HIGH);
+    pinMode(_resetPin, OUTPUT);
+    pinMode(_enablePin, OUTPUT);
+    digitalWrite(_resetPin, HIGH);
+    digitalWrite(_enablePin, HIGH);
     delay(100);
 }
 
 void hardReset()
 {
-    digitalWrite(esp8266_ResetPin, LOW);
+    digitalWrite(_resetPin, LOW);
     delay(1000);
-    digitalWrite(esp8266_ResetPin, HIGH);
+    digitalWrite(_resetPin, HIGH);
     delay(1000);
 }
 
-bool ping()
+bool test()
 {
     sendCommand(AT_TEST, ESP8266_CMD_EXECUTE, NULL);
-    return getResponseTimeout(NULL, AT_RESPONSE_OK, NULL, NULL, 1000);
+    return (getResponse(NULL, AT_RESPONSE_OK, NULL, NULL, NULL, 1000) > 0);
 }
 
 bool reset()
 {
     flush();
     sendCommand(AT_RESET, ESP8266_CMD_EXECUTE, NULL);
-    return getResponseTimeout(NULL, AT_RESPONSE_RST, NULL, NULL, 3000);
+    return (getResponse(NULL, AT_RESPONSE_RST, NULL, NULL, NULL, 3000) > 0);
 }
 
 bool echo(bool enable)
@@ -110,7 +122,7 @@ bool echo(bool enable)
     {
         sendCommand(AT_ECHO_DISABLE, ESP8266_CMD_EXECUTE, NULL);
     }
-    return getResponseTimeout(NULL, AT_RESPONSE_OK, NULL, NULL, 3000);
+    return (getResponse(NULL, AT_RESPONSE_OK, NULL, NULL, NULL, 3000) > 0);
 }
 
 bool setWifiMode(int mode)
@@ -118,7 +130,7 @@ bool setWifiMode(int mode)
     char modeStr[2];
     itoa(mode, modeStr, 10); /* Convert current int mode into ASCII (string) */
     sendCommand(AT_SET_WIFI_MODE, ESP8266_CMD_SETUP, modeStr);
-    return getResponseTimeout(NULL, AT_RESPONSE_OK, NULL, NULL, 1000);
+    return (getResponse(NULL, AT_RESPONSE_OK, NULL, NULL, NULL, 1000) > 0);
 }
 
 bool setConnMode(int mode)
@@ -127,7 +139,7 @@ bool setConnMode(int mode)
     char modeStr[2];
     itoa(mode, modeStr, 10); /* Convert current int mode into ASCII (string) */
     sendCommand(AT_CIPMUX, ESP8266_CMD_SETUP, modeStr);
-    return getResponseTimeout(NULL, AT_RESPONSE_OK, NULL, NULL, 3000);
+    return (getResponse(NULL, AT_RESPONSE_OK, NULL, NULL, NULL, 3000) > 0);
 }
 
 // Connect to Access Point
@@ -157,10 +169,10 @@ bool joinAP(char *ssid, char *ssid_pass)
             }
             _serialPort->print("\r\n");
 
-            conn = getResponseTimeout(NULL, "WIFI CONNECTED", NULL, NULL, 4000);
+            conn = (getResponse(NULL, "WIFI CONNECTED", NULL, NULL, NULL, 4000) > 0);
             if (conn)
             {
-                conn = getResponseTimeout(NULL, AT_RESPONSE_OK, NULL, NULL, 3000);
+                conn = (getResponse(NULL, AT_RESPONSE_OK, NULL, NULL, NULL, 3000) > 0);
             }
 
             if (!conn)
@@ -177,30 +189,25 @@ bool quitAP(void)
 {
     bool ret = false;
     sendCommand(AT_CWQAP, ESP8266_CMD_EXECUTE, NULL);
-    ret = getResponseTimeout(NULL, AT_RESPONSE_OK, NULL, NULL, 3000);
+    ret = (getResponse(NULL, AT_RESPONSE_OK, NULL, NULL, NULL, 3000) > 0);
     if (ret)
     {
-        (void) getResponseTimeout(NULL, "WIFI DISCONNECT", NULL, NULL, 1000);
+        (void) getResponse(NULL, "WIFI DISCONNECT", NULL, NULL, NULL, 1000);
     }
     return ret;
 }
 
 bool getVersion(char *dest)
 {
-    bool ret = false;
-    if (NULL != dest)
-    {
-        sendCommand(AT_GMR, ESP8266_CMD_EXECUTE, NULL);
-        ret = getResponseTimeout(dest, "AT version", ':', '(', 1000);
-    }
-    return ret;
+    sendCommand(AT_GMR, ESP8266_CMD_EXECUTE, NULL);
+    return (getResponse(dest, "AT version", NULL, ':', '(', 1000) > 0);
 }
 
 char* requestAPList(void)
 {
     char* ssidName = NULL;
     sendCommand(AT_CWLAP, ESP8266_CMD_EXECUTE, NULL);
-    if(getResponseTimeout(_ssidBuffer, AT_CWLAP_RX, '"', '"', 5000))
+    if(getResponse(_ssidBuffer, AT_CWLAP_RX, NULL, '"', '"', 5000) > 0)
     {
         ssidName = (char*)&_ssidBuffer;
     }
@@ -210,16 +217,23 @@ char* requestAPList(void)
 char* getNextAP(void)
 {
     char* ssidNext = NULL;
-    if(getResponseTimeout(_ssidBuffer, AT_CWLAP_RX, '"', '"', 1000))
+    if(getResponse(_ssidBuffer, AT_CWLAP_RX, NULL, '"', '"', 1000) > 0)
     {
         ssidNext = (char*)&_ssidBuffer;
     }
     return ssidNext;
 }
 
+bool ping(char *address)
+{
+    sendCommand(AT_PING, ESP8266_CMD_SETUP, address);
+    return (getResponse(NULL, AT_RESPONSE_OK, NULL, NULL, NULL, 1000) > 0);
+}
+
 bool startTCP(char *server, char *port)
 {
     uint8_t ret = false;
+    int8_t conn = 0;
 
     if ((NULL != server) && (NULL != port))
     {
@@ -234,8 +248,8 @@ bool startTCP(char *server, char *port)
         _serialPort->print(port);
         _serialPort->print("\r\n");
 
-        ret = getResponseTimeout(NULL, AT_CIPSTART_RX, NULL, NULL, 3000);
-        ret &= getResponseTimeout(NULL, AT_RESPONSE_OK, NULL, NULL, 1000);
+        conn = getResponse(NULL, AT_CIPSTART_RX, AT_CIPSTART_ALRDY, NULL, NULL, 3000);
+        ret = ((conn == ESP8266_CMD_RSP_FAILED) || (conn == ESP8266_CMD_RSP_SUCCESS));
 
         /* If failed to connect, disconnect */
         if (!ret)
@@ -248,14 +262,10 @@ bool startTCP(char *server, char *port)
 
 bool stopTCP(void)
 {
-    uint8_t ret = false;
+    int8_t conn = false;
     sendCommand(AT_CIPCLOSE, ESP8266_CMD_EXECUTE, NULL);
-    ret = getResponseTimeout(NULL, AT_CIPCLOSE_OK, NULL, NULL, 1000);
-    if (ret)
-    {
-        ret = getResponseTimeout(NULL, AT_RESPONSE_OK, NULL, NULL, 1000);
-    }
-    return ret;
+    conn = getResponse(NULL, AT_RESPONSE_OK, AT_RESPONSE_ERROR, NULL, NULL, 1000);
+    return ((conn == ESP8266_CMD_RSP_FAILED) || (conn == ESP8266_CMD_RSP_SUCCESS));
 }
 
 void flush(void)
@@ -266,20 +276,16 @@ void flush(void)
     }
 }
 
-bool localIP(char *dest)
+bool localIP(char *ip)
 {
-    uint8_t ret = false;
-    /* Validate arguments */
-    if (NULL != dest)
-    {
-        sendCommand(AT_CIFSR, ESP8266_CMD_EXECUTE, NULL);
-        ret = getResponseTimeout(dest, AT_CIFSR_STATIP, '"', '"', 1000);
-        if (ret)
-        {
-            (void) getResponseTimeout(NULL, AT_CIFSR_STAMAC, '"', '"', 1000);
-        }
-    }
-    return ret;
+    sendCommand(AT_CIFSR, ESP8266_CMD_EXECUTE, NULL);
+    return (getResponse(ip, AT_CIFSR_STATIP, NULL, '"', '"', 1000) > 0);
+}
+
+bool localMAC(char *mac)
+{
+    sendCommand(AT_CIFSR, ESP8266_CMD_EXECUTE, NULL);
+    return (getResponse(mac, AT_CIFSR_STAMAC, NULL, '"', '"', 1000) > 0);
 }
 
 /* TODO: Remove string usage */
@@ -291,15 +297,15 @@ bool send(String data)
     data += "\r\n\r\n";
 
     sendCommand(AT_CIPSEND, ESP8266_CMD_SETUP, (char*)String(data.length()).c_str());
-    ret = getResponseTimeout(NULL, ">", NULL, NULL, 1000);
+    ret = (getResponse(NULL, ">", NULL, NULL, NULL, 1000) > 0);
 
     if (ret)
     {
         /* Send data */
         _serialPort->print(data);
-        ret = getResponseTimeout(NULL, AT_CIPSEND_OK, NULL, NULL, 5000);
+        ret = (getResponse(NULL, AT_CIPSEND_OK, NULL, NULL, NULL, 5000) > 0);
         /* TODO: return status */
-        (void) getResponseTimeout(NULL, AT_IPD, ' ', ' ', 1000);
+        (void) getResponse(NULL, AT_IPD, NULL, ' ', ' ', 1000);
     }
     else
     {
@@ -328,11 +334,11 @@ static void sendCommand(const char *cmd, at_cmd_type type, char *params)
     _serialPort->print("\r\n");
 }
 
-static uint8_t getResponseTimeout(char* dest, const char* expected, char delimA, char delimB, uint32_t timeout)
+
+
+static int8_t getResponse(char* dest, const char* pass, const char* fail, char delimA, char delimB, uint32_t timeout)
 {
-    static char data[64]; /* Temp Memory */
-    
-    uint8_t ret = false;
+    int8_t ret = ESP8266_CMD_RSP_WAIT;
     uint8_t idx = 0;
     uint32_t ulStartTime = 0;
 
@@ -340,29 +346,45 @@ static uint8_t getResponseTimeout(char* dest, const char* expected, char delimA,
     char *ucpEnd = NULL;
 
     /* Validate arguments */
-    if (NULL != expected)
+    if (NULL == pass)
     {
-        ESP8266_DBG_PARSE(F("EXP: "), expected);
+        ret = ESP8266_CMD_RSP_ERROR;
+    }
+    else
+    {
+        ESP8266_DBG_PARSE(F("EXP: "), pass);
 
-        for (ulStartTime = millis(); (timeout >= (millis() - ulStartTime)) && (ret != true);)
+        for (ulStartTime = millis(); ESP8266_CMD_RSP_WAIT == ret;)
         {
-            idx = _serialPort->readBytesUntil('\n', data, sizeof(data));
+            /* Check for timeout */
+            if(timeout < (millis() - ulStartTime))
+            {
+                ESP8266_DBG_PARSE(F("TIMEOUT: "), (millis() - ulStartTime));
+                ret = ESP8266_CMD_RSP_TIMEOUT;
+                break;
+            }
+
+            /* Read line */
+            idx = _serialPort->readBytesUntil('\n', _rxBuffer, sizeof(_rxBuffer));
             if (1 < idx)
             {
-                data[idx] = '\0'; /* Always add NULL terminator */
+                _rxBuffer[idx] = '\0'; /* Always add NULL terminator */
 
-                ESP8266_DBG_PARSE(F("ACT: "), data);
+                ESP8266_DBG_PARSE(F("ACT: "), _rxBuffer);
 
-                if (0 == strncmp(expected, data, strlen(expected)))
+                /* Check for expected response */
+                if (0 == strncmp(pass, _rxBuffer, strlen(pass)))
                 {
-                    ESP8266_DBG_PARSE(F("FND: "), data);
+                    ESP8266_DBG_PARSE(F("FND: "), _rxBuffer);
+
+                    /* Search for delimeters */
                     if ((delimA != NULL) && (delimB != NULL))
                     {
-                        ucpStart = (char *) memchr(data, delimA, idx);
+                        ucpStart = (char *) memchr(_rxBuffer, delimA, idx);
                         if (NULL != ucpStart)
                         {
                             ucpStart++;
-                            ucpEnd = (char *) memchr(ucpStart, delimB, idx - (ucpStart - data));
+                            ucpEnd = (char *) memchr(ucpStart, delimB, idx - (ucpStart - _rxBuffer));
                             if (NULL != ucpEnd)
                             {
                                 if ((ucpEnd - ucpStart) > 1)
@@ -373,15 +395,34 @@ static uint8_t getResponseTimeout(char* dest, const char* expected, char delimA,
                                     {
                                         strcpy(dest, ucpStart);
                                     }
-                                    ret = true;
+                                    ret = ESP8266_CMD_RSP_SUCCESS;
                                 }
                             }
                         }
                     }
                     else
                     {
-                        ret = true;
+                        /* Expected response found and no need to find instances */
+                        ret = ESP8266_CMD_RSP_SUCCESS;
                     }
+                } 
+                /* Check for failed response */
+                else if(NULL != fail)
+                {
+                    if (0 == strncmp(fail, _rxBuffer, strlen(fail)))
+                    {
+                        ret = ESP8266_CMD_RSP_FAILED;
+                    }
+                }
+                /* Check if device is busy */
+                else if (0 == strncmp(AT_RESPONSE_BUSY, _rxBuffer, strlen(AT_RESPONSE_BUSY)))
+                {
+                    ret = ESP8266_CMD_RSP_BUSY;
+                }
+                /* Check if there is an error */
+                else if (0 == strncmp(AT_RESPONSE_ERROR, _rxBuffer, strlen(AT_RESPONSE_ERROR)))
+                {
+                    ret = ESP8266_CMD_RSP_ERROR;
                 }
             }
         }

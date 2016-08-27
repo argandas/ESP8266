@@ -17,6 +17,7 @@
 #define ESP8266_CONN_SINGLE  		(0)  /* Single connection mode */
 #define ESP8266_CONN_MULTIPLE  	    (1)  /* Multi-Channel connection mode */
 
+#define ESP8266_RX_BUFF_LEN        (64)  /* ESP8266 Rx Buffer length */
 #define ESP8266_MAX_SSID_LEN       (32)  /* Maximum SSID data length */
 
 /**
@@ -34,12 +35,12 @@ void setupESP8266(HardwareSerial &serialPort, uint32_t baud, int rst, int en);
 #endif
 
 /**
- * Ping (test) connection to ESP8266.
+ * Test connection to ESP8266.
  *
  * @retval true - success.
  * @retval false - failure.
  */
-bool ping(void);
+bool test(void);
 
 /**
  * Enable/Disable echo from ESP8266 when receiving a command.
@@ -152,9 +153,28 @@ char* getNextAP(void);
 bool localIP(char* ip);
 
 /**
+ * Get ESP8266 MAC Address.
+ *
+ * @param ip - Pointer to store current IP address.
+ * @retval true - success.
+ * @retval false - failure.
+ */
+bool localMAC(char* mac);
+
+/**
  * Flush ESP8266 serial buffer.
  */
 void flush(void);
+
+/**
+ * Ping server or IP address
+ *
+ * @param address - Server or IP address to ping
+ *
+ * @retval true - success.
+ * @retval false - failure.
+ */
+bool ping(char *address);
 
 /**
  * Start connection to TCP server.
