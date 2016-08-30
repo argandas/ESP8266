@@ -1,3 +1,17 @@
+/*
+ ESP8266_Print_AP_List.pde
+ Print the list of available Access Points.
+
+ NOTE: 
+ This example use Serial1, which is of type HardwareSerial, 
+ only some Arduino boards have this, 
+ if needed change this example to use SoftwareSerial.
+
+ modified on 29 Aug 2016
+ by @argandas
+ http://www.github.com/argandas/ESP8266
+*/
+
 #include <ESP8266.h>
 
 #define ESP8266_RESET_PIN  4 /* Arduino pin D4 */
@@ -10,49 +24,25 @@ void setup()
 {
   /* Variable to count how many APs were found */
   int APCounter = 0;
+
   Serial.begin(9600);
   Serial.println("Print available Access Points:");
 
   /* Setup ESP8266 serial port and pins */
   setupESP8266(Serial1, 115200, ESP8266_RESET_PIN, ESP8266_ENABLE_PIN);
 
-  hardReset();
-
-  delay(1000);
-  if (!reset())
+  if(!hardReset())
   {
-    Serial.println("SOFT reset failed");
+    if(reset())
+    {
+      Serial.println("ESP8266 reset OK");
+    }
   }
 
-  /* Wait until reset has been completed */
-  delay(1000);
-  flush();
-
-  if (!test())
+  if(test())
   {
-    Serial.println("Test failed");
-    flush();
+    Serial.println("ESP8266 is alive!");
   }
-
-  if (!echo(false))
-  {
-    Serial.println("Echo enable failed");
-    flush();
-  }
-
-  if (!setWifiMode(ESP8266_MODE_STATION))
-  {
-    Serial.println("Setup as client failed");
-    flush();
-  }
-
-  if (!setConnMode(ESP8266_CONN_SINGLE))
-  {
-    Serial.println("Setup as single connection failed");
-    flush();
-  }
-
-  delay(1000);
 
   /* Both requestAPList() and getNextAP() will return NULL if no AP found */
   for(ssid_name = requestAPList(); ssid_name != NULL; ssid_name = getNextAP())
@@ -70,4 +60,5 @@ void setup()
 
 void loop()
 {
+  /* Do nothing */
 }
