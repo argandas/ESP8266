@@ -216,8 +216,12 @@ char* getNextAP(void)
 
 bool ping(char *address)
 {
-    sendCommand(AT_PING, ESP8266_CMD_SETUP, address);
-    return (getResponse(NULL, AT_RESPONSE_OK, NULL, NULL, NULL, 1000) > 0);
+    _serialPort->print("AT");
+    _serialPort->print(AT_PING);
+    _serialPort->print("=\"");
+    _serialPort->print(address);
+    _serialPort->print("\"\r\n");
+    return (getResponse(NULL, AT_RESPONSE_OK, NULL, NULL, NULL, 5000) > 0);
 }
 
 bool startTCP(char *server, char *port)
