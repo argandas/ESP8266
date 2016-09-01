@@ -16,18 +16,20 @@
 */
 
 #include <ESP8266.h>
+#include <SoftwareSerial.h>
+SoftwareSerial mySerial(10, 11);
 
 #define ESP8266_RESET_PIN  4 /* Arduino pin D4 */
 #define ESP8266_ENABLE_PIN 3 /* Arduino pin D3 */
 
+/* Setup ESP8266 serial port and pins */
+ESP8266 myESP(mySerial, 115200, ESP8266_RESET_PIN, ESP8266_ENABLE_PIN);
+
 void setup()
 {
-  /* Setup ESP8266 serial port and pins */
-  setupESP8266(Serial1, 115200, ESP8266_RESET_PIN, ESP8266_ENABLE_PIN);
-
-  if(!hardReset())
+  if(!myESP.hardReset())
   {
-    if(reset())
+    if(myESP.reset())
     {
       Serial.println("ESP8266 reset OK");
     }
@@ -36,7 +38,7 @@ void setup()
 
 void loop()
 {
-  if(test())
+  if(myESP.test())
   {
     Serial.println("ESP8266 is alive!");
     delay(1000);
