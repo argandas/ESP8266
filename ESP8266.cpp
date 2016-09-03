@@ -24,19 +24,14 @@
 #define ESP8266_DBG_HTTP(label, data)
 #endif
 
-ESP8266::ESP8266(SoftwareSerial &serialPort, uint32_t baud, int rst, int en)
+ESP8266::ESP8266(int rst, int en)
 {
     /* Save hardware configurations */
     _resetPin = rst;
     _enablePin = en;
-    /* Save Serial Port configurations */
-    _serialPortHandler.isSoftSerial = true;
-    _serialPortHandler._soft = &serialPort;
-    _serialPortHandler._hard = NULL;
-    /* Setup device */
-    setup(baud);
 }
 
+#if (ESP8266_USE_HW_SW_PORT == 1)
 ESP8266::ESP8266(HardwareSerial &serialPort, uint32_t baud, int rst, int en)
 {
     /* Save hardware configurations */
@@ -49,9 +44,24 @@ ESP8266::ESP8266(HardwareSerial &serialPort, uint32_t baud, int rst, int en)
     /* Setup device */
     setup(baud);
 }
+#endif
+
+void ESP8266::begin(SoftwareSerial &serialPort, uint32_t baud)
+{
+    /* Save Serial Port configurations */
+#if (ESP8266_USE_HW_SW_PORT == 1)
+    _serialPortHandler.isSoftSerial = true;
+    _serialPortHandler._soft = &serialPort;
+    _serialPortHandler._hard = NULL;
+#else
+    _serialPort = &serialPort;
+    setup(baud);
+#endif
+}
 
 void ESP8266::setup(uint32_t baud)
 {
+#if (ESP8266_USE_HW_SW_PORT == 1)
     /* Begin Serial Port */
     if(_serialPortHandler.isSoftSerial)
     {
@@ -67,6 +77,9 @@ void ESP8266::setup(uint32_t baud)
             _serialPortHandler._hard->begin(baud);
         }
     }
+#else
+    _serialPort->begin(baud);
+#endif
     /* Setup pins */
     pinMode(_resetPin, OUTPUT);
     pinMode(_enablePin, OUTPUT);
@@ -91,7 +104,7 @@ bool ESP8266::test()
 
 bool ESP8266::reset()
 {
-    flush();
+    _serialPort->flush();
     sendCommand(AT_RESET, ESP8266_CMD_EXECUTE, NULL);
     return (getResponse(NULL, AT_RESPONSE_RST, NULL, NULL, NULL, 3000) > 0);
 }
@@ -217,7 +230,7 @@ bool ESP8266::startTCP(char *server, char *port)
 
     if ((NULL != server) && (NULL != port))
     {
-        flush();
+        _serialPort->flush();
 
         /* Build command */
         print("AT");
@@ -410,6 +423,7 @@ uint16_t ESP8266::httpReceive(httpResponse* response)
 
 size_t ESP8266::write(uint8_t character) 
 {
+#if (ESP8266_USE_HW_SW_PORT == 1)
     if(_serialPortHandler.isSoftSerial)
     {
         if(NULL != _serialPortHandler._soft)
@@ -424,10 +438,14 @@ size_t ESP8266::write(uint8_t character)
             _serialPortHandler._hard->write(character);
         }
     }
+#else
+    _serialPort->write(character);
+#endif
 }
 
 int ESP8266::read()
 {
+#if (ESP8266_USE_HW_SW_PORT == 1)
     if(_serialPortHandler.isSoftSerial)
     {
         if(NULL != _serialPortHandler._soft)
@@ -442,10 +460,14 @@ int ESP8266::read()
             return _serialPortHandler._hard->read();
         }
     }
+#else
+    return _serialPort->read();
+#endif
 }
 
 int ESP8266::peek()
 {
+#if (ESP8266_USE_HW_SW_PORT == 1)
     if(_serialPortHandler.isSoftSerial)
     {
         if(NULL != _serialPortHandler._soft)
@@ -460,10 +482,14 @@ int ESP8266::peek()
             return _serialPortHandler._hard->peek();
         }
     }
+#else
+    return _serialPort->peek();
+#endif
 }
 
 void ESP8266::flush()
 {
+#if (ESP8266_USE_HW_SW_PORT == 1)
     if(_serialPortHandler.isSoftSerial)
     {
         if(NULL != _serialPortHandler._soft)
@@ -478,10 +504,14 @@ void ESP8266::flush()
             _serialPortHandler._hard->flush();
         }
     }
+#else
+    _serialPort->flush();
+#endif
 }
 
 int ESP8266::available()
 {
+#if (ESP8266_USE_HW_SW_PORT == 1)
     if(_serialPortHandler.isSoftSerial)
     {
         if(NULL != _serialPortHandler._soft)
@@ -496,6 +526,9 @@ int ESP8266::available()
             return _serialPortHandler._hard->available();
         }
     }
+#else
+    _serialPort->available();
+#endif
 }
 
 /* Private functions */
@@ -548,6 +581,7 @@ int8_t ESP8266::getResponse(char* dest, const char* pass, const char* fail, char
             }
 
             /* Read line */
+#if (ESP8266_USE_HW_SW_PORT == 1)
             if(_serialPortHandler.isSoftSerial)
             {
                 if(NULL != _serialPortHandler._soft)
@@ -562,6 +596,9 @@ int8_t ESP8266::getResponse(char* dest, const char* pass, const char* fail, char
                     idx = _serialPortHandler._hard->readBytesUntil('\n', _rxBuffer, sizeof(_rxBuffer));
                 }
             }
+#else
+            idx = _serialPort->readBytesUntil('\n', _rxBuffer, sizeof(_rxBuffer));
+#endif
 
             if (0 < idx)
             {

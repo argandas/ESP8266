@@ -4,6 +4,8 @@
 #include "Arduino.h"
 #include <SoftwareSerial.h>
 
+#define ESP8266_USE_HW_SW_PORT      (0)  /* Enable/Disable ESP8266 Debug  */
+
 #define ESP8266_DBG_PARSE_EN        (0)  /* Enable/Disable ESP8266 Debug  */
 #define ESP8266_DBG_HTTP_RES        (0)  /* Enable/Disable ESP8266 Debug for HTTP responses */
 
@@ -17,26 +19,6 @@
 #define ESP8266_RX_BUFF_LEN        (64)  /* ESP8266 Rx Buffer length */
 #define ESP8266_MAX_SSID_LEN       (32)  /* Maximum SSID data length */
 
-typedef struct
-{
-  const char* header;
-  const char* value;
-} http_header_t;
-
-typedef struct
-{
-  char* server;
-  char* path;
-  char* data;
-  int port;
-} http_request_t;
-
-typedef struct
-{
-  int16_t status;
-  int16_t len;
-} http_response_t;
-
 class ESP8266 : public Stream
 {
   public:
@@ -48,8 +30,11 @@ class ESP8266 : public Stream
      * @param rst - ESP8266 Reset Pin
      * @param en - ESP8266 Enable Pin
      */
-    ESP8266(SoftwareSerial &serialPort, uint32_t baud, int rst, int en);
+    ESP8266(int rst, int en);
+
+#if (ESP8266_USE_HW_SW_PORT == 1)
     ESP8266(HardwareSerial &serialPort, uint32_t baud, int rst, int en);
+#endif
 
     /**
      * Test connection to ESP8266.
@@ -58,6 +43,8 @@ class ESP8266 : public Stream
      * @retval false - failure.
      */
     bool test(void);
+
+    void begin(SoftwareSerial &serialPort, uint32_t baud);
 
     /**
      * Enable/Disable echo from ESP8266 when receiving a command.
@@ -246,6 +233,7 @@ class ESP8266 : public Stream
      * Virtual method to match Stream class 
      */
     virtual size_t write(uint8_t); 
+
     virtual int available(); 
     virtual int read(); 
     virtual int peek(); 
@@ -271,15 +259,18 @@ class ESP8266 : public Stream
         ESP8266_CMD_RSP_SUCCESS = 1,
     };
 
+#if (ESP8266_USE_HW_SW_PORT == 1)
     typedef struct serialPorthandler 
     {
       SoftwareSerial* _soft;
       HardwareSerial* _hard;
       bool isSoftSerial;
     };
-
     /* ESP8266 Serial Port handler */
     serialPorthandler _serialPortHandler;
+#else
+    SoftwareSerial* _serialPort;
+#endif
 
     /* ESP8266 control pins */
     int _enablePin;
