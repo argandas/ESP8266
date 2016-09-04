@@ -56,16 +56,16 @@ void ESP8266::begin(HardwareSerial &serialPort, uint32_t baud)
 void ESP8266::setup(uint32_t baud)
 {
     /* Begin Serial Port */
-    if(_serialPortHandler.isSoftSerial)
+    if (_serialPortHandler.isSoftSerial)
     {
-        if(NULL != _serialPortHandler._soft)
+        if (NULL != _serialPortHandler._soft)
         {
             _serialPortHandler._soft->begin(baud);
         }
     }
     else
     {
-        if(NULL != _serialPortHandler._hard)
+        if (NULL != _serialPortHandler._hard)
         {
             _serialPortHandler._hard->begin(baud);
         }
@@ -266,7 +266,7 @@ bool ESP8266::send(String data)
     uint8_t ret = false;
     data += "\r\n\r\n";
 
-    if(startSendTCP(data.length()))
+    if (startSendTCP(data.length()))
     {
         print(data);
         ret = endSendTCP();
@@ -419,18 +419,18 @@ uint16_t ESP8266::httpReceive(httpResponse* response)
 }
 #endif
 
-size_t ESP8266::write(uint8_t character) 
+size_t ESP8266::write(uint8_t character)
 {
-    if(_serialPortHandler.isSoftSerial)
+    if (_serialPortHandler.isSoftSerial)
     {
-        if(NULL != _serialPortHandler._soft)
+        if (NULL != _serialPortHandler._soft)
         {
             _serialPortHandler._soft->write(character);
         }
     }
     else
     {
-        if(NULL != _serialPortHandler._hard)
+        if (NULL != _serialPortHandler._hard)
         {
             _serialPortHandler._hard->write(character);
         }
@@ -439,16 +439,16 @@ size_t ESP8266::write(uint8_t character)
 
 int ESP8266::read()
 {
-    if(_serialPortHandler.isSoftSerial)
+    if (_serialPortHandler.isSoftSerial)
     {
-        if(NULL != _serialPortHandler._soft)
+        if (NULL != _serialPortHandler._soft)
         {
             return _serialPortHandler._soft->read();
         }
     }
     else
     {
-        if(NULL != _serialPortHandler._hard)
+        if (NULL != _serialPortHandler._hard)
         {
             return _serialPortHandler._hard->read();
         }
@@ -457,16 +457,16 @@ int ESP8266::read()
 
 int ESP8266::peek()
 {
-    if(_serialPortHandler.isSoftSerial)
+    if (_serialPortHandler.isSoftSerial)
     {
-        if(NULL != _serialPortHandler._soft)
+        if (NULL != _serialPortHandler._soft)
         {
             return _serialPortHandler._soft->peek();
         }
     }
     else
     {
-        if(NULL != _serialPortHandler._hard)
+        if (NULL != _serialPortHandler._hard)
         {
             return _serialPortHandler._hard->peek();
         }
@@ -475,16 +475,16 @@ int ESP8266::peek()
 
 void ESP8266::flush()
 {
-    if(_serialPortHandler.isSoftSerial)
+    if (_serialPortHandler.isSoftSerial)
     {
-        if(NULL != _serialPortHandler._soft)
+        if (NULL != _serialPortHandler._soft)
         {
             _serialPortHandler._soft->flush();
         }
     }
     else
     {
-        if(NULL != _serialPortHandler._hard)
+        if (NULL != _serialPortHandler._hard)
         {
             _serialPortHandler._hard->flush();
         }
@@ -493,16 +493,16 @@ void ESP8266::flush()
 
 int ESP8266::available()
 {
-    if(_serialPortHandler.isSoftSerial)
+    if (_serialPortHandler.isSoftSerial)
     {
-        if(NULL != _serialPortHandler._soft)
+        if (NULL != _serialPortHandler._soft)
         {
             return _serialPortHandler._soft->available();
         }
     }
     else
     {
-        if(NULL != _serialPortHandler._hard)
+        if (NULL != _serialPortHandler._hard)
         {
             return _serialPortHandler._hard->available();
         }
@@ -559,16 +559,16 @@ int8_t ESP8266::getResponse(char* dest, const char* pass, const char* fail, char
             }
 
             /* Read line */
-            if(_serialPortHandler.isSoftSerial)
+            if (_serialPortHandler.isSoftSerial)
             {
-                if(NULL != _serialPortHandler._soft)
+                if (NULL != _serialPortHandler._soft)
                 {
                     idx = _serialPortHandler._soft->readBytesUntil('\n', _rxBuffer, sizeof(_rxBuffer));
                 }
             }
             else
             {
-                if(NULL != _serialPortHandler._hard)
+                if (NULL != _serialPortHandler._hard)
                 {
                     idx = _serialPortHandler._hard->readBytesUntil('\n', _rxBuffer, sizeof(_rxBuffer));
                 }
