@@ -6,7 +6,7 @@
 
 #define ESP8266_USE_HW_SW_PORT      (1)  /* Enable/Disable ESP8266 Debug  */
 
-#define ESP8266_DBG_PARSE_EN        (0)  /* Enable/Disable ESP8266 Debug  */
+#define ESP8266_DBG_PARSE_EN        (1)  /* Enable/Disable ESP8266 Debug  */
 #define ESP8266_DBG_HTTP_RES        (0)  /* Enable/Disable ESP8266 Debug for HTTP responses */
 
 #define ESP8266_MODE_STATION        (1)  /* Station mode */

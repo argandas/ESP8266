@@ -147,7 +147,7 @@ bool ESP8266::joinAP(char *ssid, char *ssid_pass)
         }
         print("\r\n");
 
-        conn = (getResponse(NULL, "WIFI CONNECTED", NULL, NULL, NULL, 4000) > 0);
+        conn = (getResponse(NULL, "WIFI CONNECTED", NULL, NULL, NULL, 10000) > 0);
         if (conn)
         {
             conn = (getResponse(NULL, AT_RESPONSE_OK, NULL, NULL, NULL, 5000) > 0);
@@ -300,11 +300,33 @@ int ESP8266::httpStatus(void)
 
     char *ucpStart = NULL;
     char *ucpEnd = NULL;
+    String incoming;
 
     uint16_t ret = (uint16_t) getResponse(buff, AT_IPD, NULL, ' ', ' ', 1000);
     if (0 < ret)
     {
+
         status = atoi(buff);
+
+        if (available() > 0)
+        {
+            Serial.println("=== RESPONSE BODY START ===");
+            incoming = "";
+            while (available() > 0)
+            {
+                char c = read();
+                if(c == '\n')
+                {
+                    Serial.println(incoming);
+                    incoming = "";
+                }
+                else
+                {
+                    incoming += c;
+                }
+            }
+            Serial.println("=== RESPONSE BODY END ===");
+        }
     }
 
     return status;
