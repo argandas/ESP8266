@@ -314,29 +314,8 @@ int ESP8266::httpStatus(void)
     uint16_t ret = (uint16_t) getResponse(buff, AT_IPD, NULL, ' ', ' ', 1000);
     if (0 < ret)
     {
-
+	/* Get status, response from server could be printed/obtained by httpGetBodyLine function*/
         status = atoi(buff);
-#if 0
-        if (available() > 0)
-        {
-            Serial.println("=== RESPONSE BODY START ===");
-            incoming = "";
-            while (available() > 0)
-            {
-                char c = read();
-                if (c == '\n')
-                {
-                    Serial.println(incoming);
-                    incoming = "";
-                }
-                else
-                {
-                    incoming += c;
-                }
-            }
-            Serial.println("=== RESPONSE BODY END ===");
-        }
-#endif
     }
     return status;
 }

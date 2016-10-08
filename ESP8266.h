@@ -4,8 +4,8 @@
 #include "Arduino.h"
 #include <SoftwareSerial.h>
 
-#define ESP8266_DBG_PARSE_EN        (1)  /* Enable/Disable ESP8266 Debug  */
-#define ESP8266_DBG_HTTP_RES        (1)  /* Enable/Disable ESP8266 Debug for HTTP responses */
+#define ESP8266_DBG_PARSE_EN        (0)  /* Enable/Disable ESP8266 Debug  */
+#define ESP8266_DBG_HTTP_RES        (0)  /* Enable/Disable ESP8266 Debug for HTTP responses */
 
 #define ESP8266_MODE_STATION        (1)  /* Station mode */
 #define ESP8266_MODE_AP             (2)  /* AP mode */
@@ -226,9 +226,12 @@ class ESP8266: public Stream
         int httpStatus(void);
 
         /**
-         * Get status from HTTP request.
+         * Get body response for previous request. User can get a specific line by 
+	 * passing the string of interest (stringToLookFor). If found, line will be
+         * copied in buffer whose size is defined by bufferSize. If not found, then
+         * response is only printed on debug console.
          *
-         * @retval - Request status.
+         * @retval - characters copied in buffer.
          */
         int httpGetBodyLine(char *stringToLookFor, char *buffer, uint32_t bufferSize);
 
