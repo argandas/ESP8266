@@ -4,8 +4,8 @@
 #include "Arduino.h"
 #include <SoftwareSerial.h>
 
-#define ESP8266_DBG_PARSE_EN        (0)  /* Enable/Disable ESP8266 Debug  */
-#define ESP8266_DBG_HTTP_RES        (0)  /* Enable/Disable ESP8266 Debug for HTTP responses */
+#define ESP8266_DBG_PARSE_EN        (1)  /* Enable/Disable ESP8266 Debug  */
+#define ESP8266_DBG_HTTP_RES        (1)  /* Enable/Disable ESP8266 Debug for HTTP responses */
 
 #define ESP8266_MODE_STATION        (1)  /* Station mode */
 #define ESP8266_MODE_AP             (2)  /* AP mode */
@@ -224,6 +224,13 @@ class ESP8266: public Stream
          * @retval - Request status.
          */
         int httpStatus(void);
+
+        /**
+         * Get status from HTTP request.
+         *
+         * @retval - Request status.
+         */
+        int httpGetBodyLine(char *stringToLookFor, char *buffer, uint32_t bufferSize);
 
 #if 0
         /**
