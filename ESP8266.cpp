@@ -219,16 +219,6 @@ bool ESP8266::startTCP(char *server, int port = 80)
     if (NULL != server)
     {
         flush();
-
-        Serial.print("DEBUG: ");
-        Serial.print(AT_CMD);
-        Serial.print(AT_CIPSTART);
-        Serial.print("=\"TCP\",\"");
-        Serial.print(server);
-        Serial.print("\",");
-        Serial.print(port);
-        Serial.print("\r\n");
-
         /* Build command */
         print(AT_CMD);
         print(AT_CIPSTART);
@@ -314,8 +304,29 @@ int ESP8266::httpStatus(void)
     uint16_t ret = (uint16_t) getResponse(buff, AT_IPD, NULL, ' ', ' ', 1000);
     if (0 < ret)
     {
-	/* Get status, response from server could be printed/obtained by httpGetBodyLine function*/
+
         status = atoi(buff);
+#if 0
+        if (available() > 0)
+        {
+            Serial.println("=== RESPONSE BODY START ===");
+            incoming = "";
+            while (available() > 0)
+            {
+                char c = read();
+                if (c == '\n')
+                {
+                    Serial.println(incoming);
+                    incoming = "";
+                }
+                else
+                {
+                    incoming += c;
+                }
+            }
+            Serial.println("=== RESPONSE BODY END ===");
+        }
+#endif
     }
     return status;
 }
@@ -330,6 +341,17 @@ int ESP8266::httpGetBodyLine(char *stringToLookFor, char *buffer, uint32_t buffe
     {
         Serial.println("=== RESPONSE BODY START ===");
         incoming = "";
+        uint32_t timesToWait = 0;
+
+#if (ESP8266_DBG_PARSE_EN == 0)
+        /* Wait until characters are received or timesToWait expires (maximum is 200 ms) */
+        do
+        {
+            delay(10);
+        } while (((0 == available()) && (timesToWait++ < 20)));
+
+#endif
+
         while (available() > 0)
         {
             char c = read();
@@ -346,13 +368,11 @@ int ESP8266::httpGetBodyLine(char *stringToLookFor, char *buffer, uint32_t buffe
                         sizeOfline = strlen((char *) incoming.c_str());
                         /* Subtract the index of the found string */
                         sizeOfline -= (foundStringPtr - (char *) incoming.c_str());
-                        Serial.print("size for found entry: ");
-                        Serial.println(String(sizeOfline));
+                        ESP8266_DBG_PARSE(F("size for found entry: "), String(sizeOfline));
                         /* Copy this entry on provided buffer, if it does not fit on buffer's size, then only copy as much characters as
                          * buffer can hold */
                         memcpy((void *) buffer, (void *) foundStringPtr, sizeOfline > bufferSize ? bufferSize : sizeOfline);
-                        Serial.print("found: ");
-                        Serial.println(String(buffer));
+                        ESP8266_DBG_PARSE(F("found: "), String(buffer));
                     }
                 }
                 Serial.println(incoming);
