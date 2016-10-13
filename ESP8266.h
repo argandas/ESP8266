@@ -226,8 +226,8 @@ class ESP8266: public Stream
         int httpStatus(void);
 
         /**
-         * Get body response for previous request. User can get a specific line by 
-	 * passing the string of interest (stringToLookFor). If found, line will be
+         * Get body response for previous request. User can get a specific line by
+         * passing the string of interest (stringToLookFor). If found, line will be
          * copied in buffer whose size is defined by bufferSize. If not found, then
          * response is only printed on debug console.
          *
