@@ -306,27 +306,6 @@ int ESP8266::httpStatus(void)
     {
 
         status = atoi(buff);
-#if 0
-        if (available() > 0)
-        {
-            Serial.println("=== RESPONSE BODY START ===");
-            incoming = "";
-            while (available() > 0)
-            {
-                char c = read();
-                if (c == '\n')
-                {
-                    Serial.println(incoming);
-                    incoming = "";
-                }
-                else
-                {
-                    incoming += c;
-                }
-            }
-            Serial.println("=== RESPONSE BODY END ===");
-        }
-#endif
     }
     return status;
 }
