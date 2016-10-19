@@ -254,6 +254,12 @@ bool ESP8266::localIP(char *ip)
     return (getResponse(ip, AT_CIFSR_STATIP, NULL, '"', '"', 1000) > 0);
 }
 
+bool ESP8266::getMACaddress(char* macAddr)
+{
+    sendCommand(AT_CIPSTAMAC, ESP8266_CMD_QUERY, NULL);
+    return (getResponse(macAddr, AT_CIPSTAMAC_CURR, NULL, '"', '"', 1000) > 0);
+}
+
 bool ESP8266::localMAC(char *mac)
 {
     sendCommand(AT_CIFSR, ESP8266_CMD_EXECUTE, NULL);
@@ -320,15 +326,14 @@ int ESP8266::httpGetBodyLine(char *stringToLookFor, char *buffer, uint32_t buffe
     {
         Serial.println("=== RESPONSE BODY START ===");
         incoming = "";
-        uint32_t timesToWait = 0;
 
 #if (ESP8266_DBG_PARSE_EN == 0)
+        uint32_t timesToWait = 0;
         /* Wait until characters are received or timesToWait expires (maximum is 200 ms) */
         do
         {
             delay(10);
         } while (((0 == available()) && (timesToWait++ < 20)));
-
 #endif
 
         while (available() > 0)
