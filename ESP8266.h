@@ -158,6 +158,15 @@ class ESP8266: public Stream
         /**
          * Get ESP8266 MAC Address.
          *
+         * @param macAddr - Pointer to store current MAC address.
+         * @retval true - success.
+         * @retval false - failure.
+         */
+        bool getMACaddress(char* macAddr);
+
+        /**
+         * Get ESP8266 MAC Address.
+         *
          * @param ip - Pointer to store current IP address.
          * @retval true - success.
          * @retval false - failure.

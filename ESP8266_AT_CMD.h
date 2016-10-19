@@ -39,6 +39,7 @@ const char AT_CIPSEND[] = "+CIPSEND"; /* Send data */
 const char AT_CIPCLOSE[] = "+CIPCLOSE"; /* Close TCP, UDP or SSL connection */
 const char AT_CIPMUX[] = "+CIPMUX"; /* Enable multiple connections */
 const char AT_CIFSR[] = "+CIFSR"; /* Get local IP address */
+const char AT_CIPSTAMAC[] = "+CIPSTAMAC_CUR"; /* Set/Get MAC address */
 const char AT_PING[] = "+PING"; /* DESC */
 const char AT_IPD[] = "+IPD";
 
@@ -48,6 +49,7 @@ const char AT_CIPSTART_RX[] = "CONNECT";
 const char AT_CIPSEND_OK[] = "SEND OK";
 const char AT_CIPCLOSE_OK[] = "CLOSED";
 const char AT_CIFSR_STATIP[] = "+CIFSR:STAIP,";
+const char AT_CIPSTAMAC_CURR[] = "+CIPSTAMAC_CUR:";
 const char AT_CIFSR_STAMAC[] = "+CIFSR:STAMAC,";
 
 #endif /* ESP8266_AT_CMD_H_ */
