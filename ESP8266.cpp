@@ -316,33 +316,36 @@ int ESP8266::httpStatus(void)
     return status;
 }
 
-int ESP8266::httpGetBodyLine(char *stringToLookFor, char *buffer, uint32_t bufferSize)
+int ESP8266::httpGetBodyLine(char *stringToLookFor, char *buffer, uint32_t bufferSize, uint32_t timeout)
 {
+    bool found = false;
+    uint8_t lineCnt = 0;
+    uint8_t charCnt = 0;
     uint32_t sizeOfline = 0;
-
     String incoming;
+    uint32_t timesToWait = 0;
+
+    /* Wait until characters are received or timesToWait expires (maximum is 200 ms) */
+    for (timesToWait = 0; (0 == available()) && (timesToWait*10 < timeout); timesToWait++)
+    {
+        delay(10);
+    }
 
     if (available() > 0)
     {
-        Serial.println("=== RESPONSE BODY START ===");
+        Serial.println(F("\r\n=== RESPONSE BODY START ==="));
         incoming = "";
-
-#if (ESP8266_DBG_PARSE_EN == 0)
-        uint32_t timesToWait = 0;
-        /* Wait until characters are received or timesToWait expires (maximum is 200 ms) */
-        do
-        {
-            delay(10);
-        } while (((0 == available()) && (timesToWait++ < 20)));
-#endif
 
         while (available() > 0)
         {
             char c = read();
             if (c == '\n')
             {
+                /* Print received line */
+                Serial.println(incoming);
+
                 /* Validate string to look for */
-                if ((NULL != stringToLookFor) && (NULL != buffer))
+                if ((NULL != stringToLookFor) && (NULL != buffer) && !found)
                 {
                     /* Locate first instance for the string */
                     char *foundStringPtr = strstr((char *) incoming.c_str(), stringToLookFor);
@@ -357,17 +360,29 @@ int ESP8266::httpGetBodyLine(char *stringToLookFor, char *buffer, uint32_t buffe
                          * buffer can hold */
                         memcpy((void *) buffer, (void *) foundStringPtr, sizeOfline > bufferSize ? bufferSize : sizeOfline);
                         ESP8266_DBG_PARSE(F("found: "), String(buffer));
+
+                        /* Set this to true, so we don´t keep looking */
+                        found = true;
                     }
                 }
-                Serial.println(incoming);
+
+                /* Reset line */
+                charCnt = 0;
                 incoming = "";
             }
             else
             {
+                charCnt++;
                 incoming += c;
             }
         }
-        Serial.println("=== RESPONSE BODY END ===");
+
+        if(charCnt > 0)
+        {
+            Serial.println("X: " + incoming);
+        }
+
+        Serial.println(F("=== RESPONSE BODY END ===\r\n"));
     }
     return sizeOfline;
 }

@@ -242,7 +242,7 @@ class ESP8266: public Stream
          *
          * @retval - characters copied in buffer.
          */
-        int httpGetBodyLine(char *stringToLookFor, char *buffer, uint32_t bufferSize);
+        int httpGetBodyLine(char *stringToLookFor, char *buffer, uint32_t bufferSize, uint32_t timeout = 200);
 
 #if 0
         /**
