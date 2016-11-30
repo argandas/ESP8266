@@ -326,7 +326,7 @@ int ESP8266::httpGetBodyLine(char *stringToLookFor, char *buffer, uint32_t buffe
     uint32_t timesToWait = 0;
 
     /* Wait until characters are received or timesToWait expires (maximum is 200 ms) */
-    for (timesToWait = 0; (0 == available()) && (timesToWait*10 < timeout); timesToWait++)
+    for (timesToWait = 0; (10 > available()) && (timesToWait*10 < timeout); timesToWait++)
     {
         delay(10);
     }
@@ -353,11 +353,13 @@ int ESP8266::httpGetBodyLine(char *stringToLookFor, char *buffer, uint32_t buffe
                     {
                         /* Get size of total line */
                         sizeOfline = strlen((char *) incoming.c_str());
+
                         /* Subtract the index of the found string */
                         sizeOfline -= (foundStringPtr - (char *) incoming.c_str());
                         ESP8266_DBG_PARSE(F("size for found entry: "), String(sizeOfline));
-                        /* Copy this entry on provided buffer, if it does not fit on buffer's size, then only copy as much characters as
-                         * buffer can hold */
+
+                        /* Copy this entry on provided buffer, if it does not fit on buffer's size,
+                         * then only copy as much characters as buffer can hold */
                         memcpy((void *) buffer, (void *) foundStringPtr, sizeOfline > bufferSize ? bufferSize : sizeOfline);
                         ESP8266_DBG_PARSE(F("found: "), String(buffer));
 
