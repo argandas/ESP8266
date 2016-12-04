@@ -229,14 +229,24 @@ bool ESP8266::startTCP(char *server, int port = 80)
         print("\r\n");
 
         conn = getResponse(NULL, AT_CIPSTART_RX, AT_CIPSTART_ALRDY, NULL, NULL, 3000);
-        ret = ((conn == ESP8266_CMD_RSP_FAILED) || (conn > 0));
 
-        /* If failed to connect, disconnect */
-        if (!ret)
+        /* If connected or already connected */
+        if ((ESP8266_CMD_RSP_FAILED == conn) || (ESP8266_CMD_RSP_SUCCESS == conn))
         {
+            conn = getResponse(NULL, AT_RESPONSE_OK, NULL, NULL, NULL, 1000);
+            if (ESP8266_CMD_RSP_SUCCESS == conn)
+            {
+                ret = true;
+            }
+        }
+
+        if(!ret)
+        {
+            /* Unknown issue, stop TCP connection */
             stopTCP();
         }
     }
+
     return ret;
 }
 
@@ -286,6 +296,8 @@ bool ESP8266::send(String data)
 
 bool ESP8266::startSendTCP(int len)
 {
+    ESP8266_DBG_PARSE(F("CMD: "), AT_CIPSEND);
+
     print(AT_CMD);
     print(AT_CIPSEND);
     print("=");
@@ -295,7 +307,24 @@ bool ESP8266::startSendTCP(int len)
 
 bool ESP8266::endSendTCP(void)
 {
-    return (getResponse(NULL, AT_CIPSEND_OK, NULL, NULL, NULL, 5000) > 0);
+    uint8_t ret = false;
+    int8_t conn = ESP8266_CMD_RSP_WAIT;
+
+    /* Dummy check of the Recv XX bytes message */
+    conn = getResponse(NULL, "Recv ", NULL, NULL, NULL, 5000);
+    if (ESP8266_CMD_RSP_SUCCESS == conn)
+    {
+        ret = true;
+    }
+
+    conn = getResponse(NULL, AT_CIPSEND_OK, NULL, NULL, NULL, 5000);
+
+    if (ESP8266_CMD_RSP_SUCCESS == conn)
+    {
+        ret = true;
+    }
+
+    return ret;
 }
 
 int ESP8266::httpStatus(void)
@@ -307,7 +336,7 @@ int ESP8266::httpStatus(void)
     char *ucpEnd = NULL;
     String incoming;
 
-    uint16_t ret = (uint16_t) getResponse(buff, AT_IPD, NULL, ' ', ' ', 1000);
+    uint16_t ret = (uint16_t) getResponse(buff, AT_IPD, NULL, ' ', ' ', 5000);
     if (0 < ret)
     {
 
@@ -625,12 +654,17 @@ int8_t ESP8266::getResponse(char* dest, const char* pass, const char* fail, char
     }
     else
     {
-        ESP8266_DBG_PARSE(F("EXP: "), pass);
+        ESP8266_DBG_PARSE(F("EXP Pass: "), pass);
+
+        if(NULL != fail)
+        {
+            ESP8266_DBG_PARSE(F("EXP Fail: "), fail);
+        }
 
         for (ulStartTime = millis(); ESP8266_CMD_RSP_WAIT == ret;)
         {
             /* Check for timeout */
-            if (timeout < (millis() - ulStartTime))
+            if (timeout <= (millis() - ulStartTime))
             {
                 ESP8266_DBG_PARSE(F("TIMEOUT: "), (millis() - ulStartTime));
                 ret = ESP8266_CMD_RSP_TIMEOUT;
@@ -668,7 +702,7 @@ int8_t ESP8266::getResponse(char* dest, const char* pass, const char* fail, char
                 ESP8266_DBG_PARSE(F("ACT: "), _rxBuffer);
 
                 /* Check for expected response */
-                if (0 == strncmp(pass, _rxBuffer, strlen(pass)))
+                if (0 == strncmp(_rxBuffer, pass, strlen(pass)))
                 {
                     ESP8266_DBG_PARSE(F("FND: "), _rxBuffer);
 
@@ -706,20 +740,17 @@ int8_t ESP8266::getResponse(char* dest, const char* pass, const char* fail, char
                     }
                 }
                 /* Check for failed response */
-                else if (NULL != fail)
+                else if ((NULL != fail) && (0 == strncmp(_rxBuffer, fail, strlen(fail))))
                 {
-                    if (0 == strncmp(fail, _rxBuffer, strlen(fail)))
-                    {
-                        ret = ESP8266_CMD_RSP_FAILED;
-                    }
+                    ret = ESP8266_CMD_RSP_FAILED;
                 }
                 /* Check if device is busy */
-                else if (0 == strncmp(AT_RESPONSE_BUSY, _rxBuffer, strlen(AT_RESPONSE_BUSY)))
+                else if (0 == strncmp(_rxBuffer, AT_RESPONSE_BUSY, strlen(AT_RESPONSE_BUSY)))
                 {
                     ret = ESP8266_CMD_RSP_BUSY;
                 }
                 /* Check if there is an error */
-                else if (0 == strncmp(AT_RESPONSE_ERROR, _rxBuffer, strlen(AT_RESPONSE_ERROR)))
+                else if (0 == strncmp(_rxBuffer, AT_RESPONSE_ERROR, strlen(AT_RESPONSE_ERROR)))
                 {
                     ret = ESP8266_CMD_RSP_ERROR;
                 }
